@@ -1,0 +1,83 @@
+installing freeBSD in virtualbox 
+end up with: 
+<image freebsd in virtual machine with gui >
+
+You’ll need virtualbox, freebsd iso
+New - 
+<install freebsd> vboxsvga bridged network
+
+
+
+freebsd-update fetch install
+pkg
+pkg update
+
+echo 'kern.vty=vt' >> /boot/loader.conf
+pkg install -y virtualbox-ose-additions
+
+sysrc vboxguest_enable=YES
+sysrc vboxservice_enable=YES
+
+
+service vboxguest start
+service vboxservice start
+
+
+echo 'dbus_enable="YES"' >> /etc/rc.conf
+service dbus start
+
+
+how it’s time to install the plumbing with which to hang our graphics on. The xorg
+pkg install xorg
+pkg install xfce
+
+test it out with
+startxfce4 –with-ck-launch
+
+terminal touch .xinitrc .xession
+
+mousepad
+exec /usr/local/bin/startxfce4 –with-ck-launch		 > ~/.xinitrc
+. /usr/local/etc/xdg/xfce4/xinitrc    				 > ~/.xsession
+
+into .profile
+if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/ttyv0" ]; then
+  startx
+fi
+
+
+pkg install sudo 
+visudo # uncomment wheel group
+
+sudo pkg install chromium
+
+sudo pkg install python311
+sudo ln -s /usr/local/bin/python3.11 /usr/local/bin/python
+
+sudo pkg install py311-pip
+
+python –version
+pip --version
+
+sudo ln -s /usr/local/bin/pip3.11 /usr/local/bin/pip
+
+
+
+sudo pkg install -y libreoffice vlc notepadnext
+
+/etc/X11/xorg.conf
+
+Section "Files"
+    FontPath "/usr/local/share/fonts/GentiumBasic/"
+    FontPath "/usr/local/share/fonts/Liberation/"
+    FontPath "/usr/local/share/fonts/Carlito/"
+    FontPath "/usr/local/share/fonts/Caladea/"
+EndSection
+
+Section "Module"
+    Load "freetype"
+EndSection
+
+
+build-essentials probably aren’t needed for you
+sudo pkg install -y gcc gmake cmake autoconf automake libtool git pkgconf gdb
