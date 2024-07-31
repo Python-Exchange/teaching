@@ -1,0 +1,199 @@
+To add custom files to a FreeBSD installation using `mtree`, you can modify the mtree specification
+files that define the directory hierarchy and file permissions. `mtree` is a utility that reads a
+specification file and applies it to the filesystem, creating directories, setting permissions, and
+managing files.
+
+### Overview
+
+1. **Mtree Specification Files**: These files describe the structure and permissions of directories and
+files.
+2. **Updating Mtree Specifications**: You can modify these specifications to include custom files and
+directories in your FreeBSD build.
+
+### Steps to Add Custom Files Using Mtree
+
+#### 1. **Locate the Mtree Specification Files**
+
+Mtree specification files are usually found in the FreeBSD source tree under `src/etc/mtree/`. Key
+specification files include:
+
+- `BSD.root.dist`: Specifies the root filesystem layout.
+- `BSD.var.dist`: Specifies the `/var` filesystem layout.
+- `BSD.usr.dist`: Specifies the `/usr` filesystem layout.
+
+#### 2. **Modify the Appropriate Mtree File**
+
+To add custom files, you need to edit the appropriate mtree specification file. For example, to add a
+custom file under `/etc/`, you would modify `BSD.root.dist`.
+
+#### Example: Adding a Custom Script to `/etc/rc.d/`
+
+**Step A: Define the Custom File in `BSD.root.dist`**
+
+1. **Open `BSD.root.dist`**:
+
+ ```sh
+ cd /home/python/Documents/freebsd/src/etc/mtree/
+ vi BSD.root.dist
+ ```
+
+2. **Add Entry for Custom Script**:
+
+ Locate the section for `/etc/rc.d/` and add an entry for your custom script. For example:
+
+ ```
+ /etc/rc.d/firstboot     type=file mode=0755 uname=root gname=wheel
+ ```
+
+ This entry specifies that a file named `firstboot` should be placed in `/etc/rc.d/` with mode `0755` and
+owned by `root:wheel`.
+**Step B: Provide the Custom Script**
+
+Ensure that your custom script (`firstboot`) is placed in the appropriate location in the source tree so
+that it gets included during the installation process.
+
+1. **Place the Script**:
+
+ ```sh
+ cp /path/to/your/firstboot /home/python/Documents/freebsd/src/etc/rc.d/firstboot
+ ```
+
+2. **Set Permissions**:
+
+ Make sure the script has the correct permissions:
+
+ ```sh
+ chmod 755 /home/python/Documents/freebsd/src/etc/rc.d/firstboot
+ ```
+
+#### 3. **Rebuild the System**
+
+After modifying the mtree file and ensuring that the custom files are in place, rebuild the FreeBSD
+system. During the installation phase, the `mtree` specifications will be applied, and the custom files
+will be installed accordingly.
+
+**Example Build Commands**:
+
+```sh
+cd /home/python/Documents/freebsd/src
+make buildworld
+make installworld DESTDIR=/path/to/installation/directory
+```
+
+Ensure you specify the correct `DESTDIR` if you're installing into a chroot environment or a custom
+installation directory.
+
+### Important Considerations
+
+1. **File Permissions and Ownership**: Carefully set the permissions and ownership for any new files
+or directories you add. Incorrect settings can lead to security issues or operational failures.
+
+2. **Testing**: Thoroughly test the resulting system to ensure that all customizations are correctly
+applied and that the system behaves as expected.
+
+3. **Documentation**: Document any changes made to mtree specifications and the source tree to
+maintain clarity and reproducibility.
+
+### Conclusion
+By modifying the mtree specification files and ensuring that your custom files are included in the
+source tree, you can effectively customize the layout and contents of a FreeBSD installation. This
+method provides a structured way to manage filesystem hierarchy and permissions during the system
+build process.
+
+So can I use release.sh with this?
+
+
+Attempt
+
+add rc.d firstboot tags=package=custom to mtree bsd.root.dist
+
+mkdir -p /home/python/Documents/freebsd/src/etc/rc.d
+
+
+
+cat <<EOF > /home/python/Documents/freebsd/src/etc/rc.d/firstboot
+#!/bin/sh
+#
+# PROVIDE: firstboot
+# REQUIRE: NETWORKING
+# BEFORE: DAEMON
+# KEYWORD: FreeBSD
+
+. /etc/rc.subr
+
+name="firstboot"
+start_cmd="firstboot_start"
+stop_cmd=":"
+
+firstboot_start() {
+   echo "Running firstboot script..."
+
+  # Ensure the package manager is initialized
+  pkg bootstrap -f
+
+  # Update the package repository
+  pkg update
+
+  # Install Xorg and Xfce
+  pkg install -y xorg xfce
+
+  # Enable necessary services
+  sysrc dbus_enable="YES"
+  sysrc hald_enable="YES"
+  #sysrc slim_enable="YES" # Example display manager, replace as needed
+
+  # Set firstboot to disable itself after running
+  sysrc firstboot_enable="NO"
+}
+
+load_rc_config \$name
+run_rc_command "\$1"
+EOF
+
+
+next example: Create a Firstboot Script
+sh
+Copy code
+cat <<EOF >> /mnt/etc/rc.d/firstboot
+env ASSUME_ALWAYS_YES=YES pkg bootstrap
+pkg install -y mc
+EOF
+
+This block of code does the following:
+    • cat <<EOF >> /mnt/etc/rc.d/firstboot: This line begins a "heredoc" (here
+      document) that appends the following lines until EOF into the file
+      /mnt/etc/rc.d/firstboot. The >> operator appends to the file if it exists, or creates it
+      if it doesn't.
+    • env ASSUME_ALWAYS_YES=YES pkg bootstrap: This command initializes the
+      FreeBSD package manager (pkg). The ASSUME_ALWAYS_YES=YES environment variable
+      setting ensures that pkg does not prompt for confirmation, making it suitable for automated
+      scripts.
+    • pkg install -y mc: This command installs the Midnight Commander (mc) package. The
+      -y flag automatically answers "yes" to any prompts, again making the script suitable for
+      automation.
+
+
+chmod 755 /home/python/Documents/freebsd/src/etc/rc.d/firstboot
+
+
+
+to cleanup
+chflags -R noschg /scratch/*
+rm -rf /scratch/*
+
+
+Building
+cd /home/python/Documents/freebsd/src/release
+sh release.sh -c release.conf
+modified: etc/mtree/BSD.root.dist
+new file: etc/rc.d/firstboot
+new file: lib/clang/include/VCSVersion_BACKUP_45488.inc
+new file: lib/clang/include/VCSVersion_BASE_45488.inc
+new file: lib/clang/include/VCSVersion_LOCAL_45488.inc
+new file: lib/clang/include/VCSVersion_REMOTE_45488.inc
+new file: release/nohup.out
+new file: release/release.bash.bak
+new file: release/release.conf
+modified: release/release.sh
+new file: release/release2.sh
+
